@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 using SharpEmu.HLE;
+using SharpEmu.Logging;
 using System.Threading;
 using System.Diagnostics.CodeAnalysis;
 
@@ -9,6 +10,8 @@ namespace SharpEmu.Libs.Kernel;
 
 public static class KernelPthreadCompatExports
 {
+    private static readonly SharpEmuLogger Log = SharpEmuLog.For("SharpEmu.Libs.Kernel.KernelPthreadCompatExports");
+
     private const int MutexTypeDefault = 1;
     private const int MutexTypeErrorCheck = 1;
     private const int MutexTypeRecursive = 2;
@@ -1080,7 +1083,7 @@ public static class KernelPthreadCompatExports
         }
 
         var currentThreadId = KernelPthreadState.GetCurrentThreadUniqueId();
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] pthread_self: stale_rdi=0x{ctx[CpuRegister.Rdi]:X16} thread=0x{currentThreadHandle:X16} tid=0x{currentThreadId:X16}");
     }
 
@@ -1093,7 +1096,7 @@ public static class KernelPthreadCompatExports
 
         _ = ctx.TryReadUInt64(mutexAddress, out var guestWord0);
         _ = ctx.TryReadUInt64(mutexAddress + 8, out var guestWord1);
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] pthread_{operation}: mutex=0x{mutexAddress:X16} resolved=0x{resolvedAddress:X16} " +
             $"guest[0]=0x{guestWord0:X16} guest[8]=0x{guestWord1:X16} " +
             $"current=0x{currentThreadId:X16} owner=0x{(state?.OwnerThreadId ?? 0):X16} " +
@@ -1107,7 +1110,7 @@ public static class KernelPthreadCompatExports
             return;
         }
 
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] pthread_cond_{operation}: cond=0x{condAddress:X16} mutex=0x{mutexAddress:X16} " +
             $"waiters={(state?.Waiters ?? 0)} epoch=0x{(state?.SignalEpoch ?? 0):X} timed={timed} result=0x{unchecked((uint)result):X8}");
     }

@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using SharpEmu.Core.Cpu;
 using SharpEmu.HLE;
+using SharpEmu.Logging;
 
 namespace SharpEmu.Core.Cpu.Native;
 
@@ -19,7 +20,7 @@ public sealed partial class DirectExecutionBackend
 		{
 			if (!(GCHandle.FromIntPtr(backendHandle).Target is DirectExecutionBackend directExecutionBackend))
 			{
-				Console.Error.WriteLine(
+				Log.Error(
 					$"[LOADER][ERROR] ImportDispatchGatewayManaged: invalid backend handle 0x{backendHandle:X16}");
 				return 18446744071562199042uL;
 			}
@@ -28,8 +29,8 @@ public sealed partial class DirectExecutionBackend
 		}
 		catch (Exception ex)
 		{
-			Console.Error.WriteLine(
-				$"[LOADER][ERROR] ImportDispatchGatewayManaged exception: {ex.GetType().Name}: {ex.Message}");
+			Log.Error(
+				$"[LOADER][ERROR] ImportDispatchGatewayManaged exception: {ex.GetType().Name}: {ex.Message}", ex);
 			return 18446744071562199298uL;
 		}
 	}
@@ -88,7 +89,7 @@ public sealed partial class DirectExecutionBackend
 		int num2 = Volatile.Read(in _rawSentinelRecoveries);
 		if (num2 != _lastReportedRawSentinelRecoveries)
 		{
-			Console.Error.WriteLine($"[LOADER][TRACE] Raw sentinel recoveries: {num2} (last import index={importIndex})");
+			Log.Debug($"[LOADER][TRACE] Raw sentinel recoveries: {num2} (last import index={importIndex})");
 			_lastReportedRawSentinelRecoveries = num2;
 		}
 		_cpuContext.Rip = importStubEntry.Address;
@@ -127,7 +128,7 @@ public sealed partial class DirectExecutionBackend
 				{
 					*(ulong*)(argPackPtr + 96) = num8;
 					num7 = num8;
-					Console.Error.WriteLine($"[LOADER][WARNING] Import#{num}: corrected suspicious return RIP using stack slot +0x{i * 8:X} -> 0x{num7:X16}");
+					Log.Warn($"[LOADER][WARNING] Import#{num}: corrected suspicious return RIP using stack slot +0x{i * 8:X} -> 0x{num7:X16}");
 					break;
 				}
 			}
@@ -142,7 +143,7 @@ public sealed partial class DirectExecutionBackend
 			{
 				symbolText = sym;
 			}
-			Console.Error.WriteLine(
+			Log.Debug(
 				$"[LOADER][TRACE] bootstrap_call#{num}: op=0x{value:X16} sym_ptr=0x{value2:X16} sym='{symbolText}' out_ptr=0x{num3:X16} ret=0x{num7:X16}");
 		}
 		if (!_forcedGuestExit && ShouldForceGuestExitOnImportLoop(importStubEntry.Nid, num7, num, value, value2) && TryForceGuestExitToHostStub(argPackPtr, num, num7, importStubEntry.Nid))
@@ -180,26 +181,26 @@ public sealed partial class DirectExecutionBackend
 			{
 				if (flag6)
 				{
-					Console.Error.WriteLine(
+					Log.Debug(
 						$"[LOADER][TRACE] Import#{num}: {matchedExport.LibraryName}:{matchedExport.Name} ({importStubEntry.Nid}) " +
 						$"rdi=0x{value:X16} rsi=0x{value2:X16} rdx=0x{num3:X16} rcx=0x{num4:X16} ret=0x{num7:X16}");
 				}
 				else
 				{
-					Console.Error.WriteLine($"[LOADER][TRACE] Import#{num}: {matchedExport.LibraryName}:{matchedExport.Name} ({importStubEntry.Nid})");
+					Log.Debug($"[LOADER][TRACE] Import#{num}: {matchedExport.LibraryName}:{matchedExport.Name} ({importStubEntry.Nid})");
 				}
 			}
 			else
 			{
 				if (flag6)
 				{
-					Console.Error.WriteLine(
+					Log.Debug(
 						$"[LOADER][TRACE] Import#{num}: {importStubEntry.Nid} " +
 						$"rdi=0x{value:X16} rsi=0x{value2:X16} rdx=0x{num3:X16} rcx=0x{num4:X16} ret=0x{num7:X16}");
 				}
 				else
 				{
-					Console.Error.WriteLine($"[LOADER][TRACE] Import#{num}: {importStubEntry.Nid}");
+					Log.Debug($"[LOADER][TRACE] Import#{num}: {importStubEntry.Nid}");
 				}
 			}
 			if (flag6)
@@ -213,27 +214,27 @@ public sealed partial class DirectExecutionBackend
 		}
 		if (importStubEntry.Nid == "8zTFvBIAIN8" && num <= 256)
 		{
-			Console.Error.WriteLine($"[LOADER][TRACE] memset#{num}: dst=0x{_cpuContext[CpuRegister.Rdi]:X16} val=0x{_cpuContext[CpuRegister.Rsi] & 0xFF:X2} len=0x{_cpuContext[CpuRegister.Rdx]:X16} ret=0x{num7:X16}");
+			Log.Debug($"[LOADER][TRACE] memset#{num}: dst=0x{_cpuContext[CpuRegister.Rdi]:X16} val=0x{_cpuContext[CpuRegister.Rsi] & 0xFF:X2} len=0x{_cpuContext[CpuRegister.Rdx]:X16} ret=0x{num7:X16}");
 		}
 		if (importStubEntry.Nid == "tsvEmnenz48" && num <= 64)
 		{
-			Console.Error.WriteLine($"[LOADER][TRACE] __cxa_atexit#{num}: func=0x{_cpuContext[CpuRegister.Rdi]:X16} arg=0x{_cpuContext[CpuRegister.Rsi]:X16} dso=0x{_cpuContext[CpuRegister.Rdx]:X16} ret=0x{num7:X16}");
+			Log.Debug($"[LOADER][TRACE] __cxa_atexit#{num}: func=0x{_cpuContext[CpuRegister.Rdi]:X16} arg=0x{_cpuContext[CpuRegister.Rsi]:X16} dso=0x{_cpuContext[CpuRegister.Rdx]:X16} ret=0x{num7:X16}");
 		}
 		if (importStubEntry.Nid == "bzQExy189ZI" || importStubEntry.Nid == "8G2LB+A3rzg")
 		{
-			Console.Error.WriteLine($"[LOADER][TRACE] {importStubEntry.Nid}#{num}: rdi=0x{_cpuContext[CpuRegister.Rdi]:X16} rsi=0x{_cpuContext[CpuRegister.Rsi]:X16} rdx=0x{_cpuContext[CpuRegister.Rdx]:X16} ret=0x{num7:X16}");
+			Log.Debug($"[LOADER][TRACE] {importStubEntry.Nid}#{num}: rdi=0x{_cpuContext[CpuRegister.Rdi]:X16} rsi=0x{_cpuContext[CpuRegister.Rsi]:X16} rdx=0x{_cpuContext[CpuRegister.Rdx]:X16} ret=0x{num7:X16}");
 		}
 		if (flag || flag2 || flag3)
 		{
-			Console.Error.WriteLine($"[LOADER][TRACE] ImportCtx#{num}: nid={importStubEntry.Nid} ret=0x{num7:X16} rdi=0x{_cpuContext[CpuRegister.Rdi]:X16} rsi=0x{_cpuContext[CpuRegister.Rsi]:X16} rdx=0x{_cpuContext[CpuRegister.Rdx]:X16} rcx=0x{_cpuContext[CpuRegister.Rcx]:X16}");
-			Console.Error.WriteLine($"[LOADER][TRACE] ImportNV#{num}: rbx=0x{value3:X16} rbp=0x{value4:X16} r12=0x{value5:X16} r13=0x{value6:X16} r14=0x{value7:X16} r15=0x{value8:X16}");
+			Log.Debug($"[LOADER][TRACE] ImportCtx#{num}: nid={importStubEntry.Nid} ret=0x{num7:X16} rdi=0x{_cpuContext[CpuRegister.Rdi]:X16} rsi=0x{_cpuContext[CpuRegister.Rsi]:X16} rdx=0x{_cpuContext[CpuRegister.Rdx]:X16} rcx=0x{_cpuContext[CpuRegister.Rcx]:X16}");
+			Log.Debug($"[LOADER][TRACE] ImportNV#{num}: rbx=0x{value3:X16} rbp=0x{value4:X16} r12=0x{value5:X16} r13=0x{value6:X16} r14=0x{value7:X16} r15=0x{value8:X16}");
 			if (flag3)
 			{
 				ulong num9 = _cpuContext[CpuRegister.Rsp];
 				if (_cpuContext.TryReadUInt64(num9, out var value9) && _cpuContext.TryReadUInt64(num9 + 8, out var value10) && _cpuContext.TryReadUInt64(num9 + 16, out var value11) && _cpuContext.TryReadUInt64(num9 + 24, out var value12) && _cpuContext.TryReadUInt64(num9 + 32, out var value13) && _cpuContext.TryReadUInt64(num9 + 40, out var value14) && _cpuContext.TryReadUInt64(num9 + 48, out var value15) && _cpuContext.TryReadUInt64(num9 + 56, out var value16) && _cpuContext.TryReadUInt64(num9 + 64, out var value17))
 				{
-					Console.Error.WriteLine($"[LOADER][TRACE] ImportStackHead#{num}: rsp=0x{num9:X16} [0]=0x{value9:X16} [20]=0x{value13:X16} [40]=0x{value17:X16}");
-					Console.Error.WriteLine($"[LOADER][TRACE] ImportStack#{num}: rsp=0x{num9:X16} [0]=0x{value9:X16} [8]=0x{value10:X16} [10]=0x{value11:X16} [18]=0x{value12:X16} [20]=0x{value13:X16} [28]=0x{value14:X16} [30]=0x{value15:X16} [38]=0x{value16:X16} [40]=0x{value17:X16}");
+					Log.Debug($"[LOADER][TRACE] ImportStackHead#{num}: rsp=0x{num9:X16} [0]=0x{value9:X16} [20]=0x{value13:X16} [40]=0x{value17:X16}");
+					Log.Debug($"[LOADER][TRACE] ImportStack#{num}: rsp=0x{num9:X16} [0]=0x{value9:X16} [8]=0x{value10:X16} [10]=0x{value11:X16} [18]=0x{value12:X16} [20]=0x{value13:X16} [28]=0x{value14:X16} [30]=0x{value15:X16} [38]=0x{value16:X16} [40]=0x{value17:X16}");
 				}
 			}
 			if (flag3)
@@ -247,7 +248,7 @@ public sealed partial class DirectExecutionBackend
 			{
 				byte[] array = new byte[64];
 				Marshal.Copy((nint)(num7 - 32), array, 0, array.Length);
-				Console.Error.WriteLine($"[LOADER][TRACE] __stack_chk_fail return-site @0x{num7:X16}: {BitConverter.ToString(array).Replace("-", " ")}");
+				Log.Error($"[LOADER][TRACE] __stack_chk_fail return-site @0x{num7:X16}: {BitConverter.ToString(array).Replace("-", " ")}");
 			}
 			catch
 			{
@@ -273,7 +274,7 @@ public sealed partial class DirectExecutionBackend
 			if (!dispatchResolved)
 			{
 				LastError = "Missing HLE export for NID: " + importStubEntry.Nid;
-				Console.Error.WriteLine($"[LOADER][WARN] Import#{num} unresolved: nid={importStubEntry.Nid} ret=0x{num7:X16}");
+				Log.Error($"[LOADER][WARN] Import#{num} unresolved: nid={importStubEntry.Nid} ret=0x{num7:X16}");
 				if (importStubEntry.Nid == "L-Q3LEjIbgA")
 				{
 					string value18 = string.Join(" ", importStubEntry.Nid.Select(delegate (char c)
@@ -281,18 +282,18 @@ public sealed partial class DirectExecutionBackend
 						int num10 = c;
 						return num10.ToString("X2");
 					}));
-					Console.Error.WriteLine($"[LOADER][WARN] map_direct nid raw len={importStubEntry.Nid.Length} chars=[{value18}]");
+					Log.Warn($"[LOADER][WARN] map_direct nid raw len={importStubEntry.Nid.Length} chars=[{value18}]");
 					Delegate function;
 					bool value19 = _moduleManager.TryGetFunction(importStubEntry.Nid, out function);
 					ExportedFunction export2;
 					bool value20 = _moduleManager.TryGetExport(importStubEntry.Nid, out export2);
-					Console.Error.WriteLine($"[LOADER][WARN] map_direct lookup with import nid: function={value19}, export={value20}");
-					Console.Error.WriteLine(_moduleManager.TryGetExport("L-Q3LEjIbgA", out ExportedFunction export3) ? $"[LOADER][WARN] Canonical map_direct exists as {export3.LibraryName}:{export3.Name}, target={export3.Target}, ctx_target={_cpuContext.TargetGeneration}" : "[LOADER][WARN] Canonical map_direct export lookup also missing");
+					Log.Warn($"[LOADER][WARN] map_direct lookup with import nid: function={value19}, export={value20}");
+					Log.Warn(_moduleManager.TryGetExport("L-Q3LEjIbgA", out ExportedFunction export3) ? $"[LOADER][WARN] Canonical map_direct exists as {export3.LibraryName}:{export3.Name}, target={export3.Target}, ctx_target={_cpuContext.TargetGeneration}" : "[LOADER][WARN] Canonical map_direct export lookup also missing");
 				}
 			}
 			else if (orbisGen2Result != OrbisGen2Result.ORBIS_GEN2_OK)
 			{
-				Console.Error.WriteLine($"[LOADER][WARN] Import#{num} result: {orbisGen2Result} ({importStubEntry.Nid})");
+				Log.Warn($"[LOADER][WARN] Import#{num} result: {orbisGen2Result} ({importStubEntry.Nid})");
 			}
 			_cpuContext[CpuRegister.Rbx] = value3;
 			_cpuContext[CpuRegister.Rbp] = value4;
@@ -321,7 +322,7 @@ public sealed partial class DirectExecutionBackend
 			}
 			if (flag || flag2 || flag3)
 			{
-				Console.Error.WriteLine($"[LOADER][TRACE] ImportRet#{num}: nid={importStubEntry.Nid} result={orbisGen2Result} rax=0x{_cpuContext[CpuRegister.Rax]:X16}");
+				Log.Debug($"[LOADER][TRACE] ImportRet#{num}: nid={importStubEntry.Nid} result={orbisGen2Result} rax=0x{_cpuContext[CpuRegister.Rax]:X16}");
 				if (flag3)
 				{
 					Console.Error.Flush();
@@ -354,7 +355,7 @@ public sealed partial class DirectExecutionBackend
 		}
 		_forcedGuestExit = true;
 		LastError = $"Detected repeating import loop at import#{dispatchIndex} ({nid}) and forced guest exit.";
-		Console.Error.WriteLine($"[LOADER][ERROR] Import-loop guard fired at import#{dispatchIndex}: nid={nid} ret=0x{returnRip:X16} -> host_exit=0x{num:X16}");
+		Log.Error($"[LOADER][ERROR] Import-loop guard fired at import#{dispatchIndex}: nid={nid} ret=0x{returnRip:X16} -> host_exit=0x{num:X16}");
 		DumpRecentImportTrace();
 		return true;
 	}
@@ -374,7 +375,7 @@ public sealed partial class DirectExecutionBackend
 		{
 			return false;
 		}
-		Console.Error.WriteLine(
+		Log.Debug(
 			$"[LOADER][INFO] Guest entry exit at import#{dispatchIndex}: nid={nid} ret=0x{returnRip:X16} reason={reason} status={status}");
 		return true;
 	}
@@ -397,7 +398,7 @@ public sealed partial class DirectExecutionBackend
 
 		_guestThreadYieldRequested = true;
 		_guestThreadYieldReason = string.IsNullOrWhiteSpace(reason) ? nid : reason;
-		Console.Error.WriteLine(
+		Log.Debug(
 			$"[LOADER][INFO] Guest thread yield at import#{dispatchIndex}: nid={nid} ret=0x{returnRip:X16} reason={_guestThreadYieldReason}");
 		return true;
 	}
@@ -593,10 +594,10 @@ public sealed partial class DirectExecutionBackend
 		List<string> list = GetRecentDistinctImportPrelude(maxCount: 5, skipNid: "j4ViWNHEgww");
 		if (list.Count == 0)
 		{
-			Console.Error.WriteLine($"[LOADER][WARNING] Import#{dispatchIndex}: detected strlen burst (count={_consecutiveStrlenImports}) ret=0x{returnRip:X16}; no prelude NIDs recorded.");
+			Log.Warn($"[LOADER][WARNING] Import#{dispatchIndex}: detected strlen burst (count={_consecutiveStrlenImports}) ret=0x{returnRip:X16}; no prelude NIDs recorded.");
 			return;
 		}
-		Console.Error.WriteLine($"[LOADER][WARNING] Import#{dispatchIndex}: detected strlen burst (count={_consecutiveStrlenImports}) ret=0x{returnRip:X16}; last5_nids={string.Join(" -> ", list)}");
+		Log.Warn($"[LOADER][WARNING] Import#{dispatchIndex}: detected strlen burst (count={_consecutiveStrlenImports}) ret=0x{returnRip:X16}; last5_nids={string.Join(" -> ", list)}");
 	}
 
 	private List<string> GetRecentDistinctImportPrelude(int maxCount, string skipNid)
@@ -690,7 +691,7 @@ public sealed partial class DirectExecutionBackend
 		bool logBootstrap = string.Equals(Environment.GetEnvironmentVariable("SHARPEMU_LOG_BOOTSTRAP"), "1", StringComparison.Ordinal);
 		if (logBootstrap)
 		{
-			Console.Error.WriteLine(
+			Log.Debug(
 				$"[LOADER][TRACE] bootstrap_dispatch: handle=0x{bridgeHandle:X16} symbol='{symbolName}' out=0x{outputAddress:X16} rax=0x{_cpuContext[CpuRegister.Rax]:X16}");
 		}
 
@@ -699,7 +700,7 @@ public sealed partial class DirectExecutionBackend
 			return OrbisGen2Result.ORBIS_GEN2_OK;
 		}
 
-		Console.Error.WriteLine(
+		Log.Error(
 			$"[LOADER][WARN] bootstrap_bridge unresolved: handle=0x{bridgeHandle:X} symbol='{symbolName}' out=0x{outputAddress:X16}");
 		return OrbisGen2Result.ORBIS_GEN2_OK;
 	}
@@ -823,9 +824,9 @@ public sealed partial class DirectExecutionBackend
 			{
 				if (_stackChkBypassSites.Add(num) && TryPatchStackChkFailBranch(num))
 				{
-					Console.Error.WriteLine($"[LOADER][WARNING] Import#{dispatchIndex}: patched stack_chk_fail tail branch at 0x{num:X16} -> NOP NOP");
+					Log.Error($"[LOADER][WARNING] Import#{dispatchIndex}: patched stack_chk_fail tail branch at 0x{num:X16} -> NOP NOP");
 				}
-				Console.Error.WriteLine($"[LOADER][WARNING] Import#{dispatchIndex}: redirected __stack_chk_fail return to epilogue 0x{value:X16}");
+				Log.Error($"[LOADER][WARNING] Import#{dispatchIndex}: redirected __stack_chk_fail return to epilogue 0x{value:X16}");
 			}
 		}
 		catch
@@ -882,7 +883,7 @@ public sealed partial class DirectExecutionBackend
 			}
 			FlushInstructionCache(GetCurrentProcess(), (void*)num, 5u);
 			_patchedEa020eLookupCall = true;
-			Console.Error.WriteLine($"[LOADER][WARNING] Import#{dispatchIndex}: patched hash-lookup call at 0x{num:X16} -> NOP*5");
+			Log.Warn($"[LOADER][WARNING] Import#{dispatchIndex}: patched hash-lookup call at 0x{num:X16} -> NOP*5");
 		}
 		catch
 		{

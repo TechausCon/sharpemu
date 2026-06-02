@@ -11,4 +11,8 @@ SPDX-License-Identifier: GPL-2.0-or-later
   <ItemGroup>
     <EmbeddedResource Include="Aerolib\aerolib.bin" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SharpEmu.Logging\SharpEmu.Logging.csproj" />
+  </ItemGroup>
 </Project>

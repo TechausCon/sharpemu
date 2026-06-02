@@ -3,6 +3,12 @@
   "dependencies": {
     "net10.0": {
       "sharpemu.hle": {
+        "type": "Project",
+        "dependencies": {
+          "SharpEmu.Logging": "[1.0.0, )"
+        }
+      },
+      "sharpemu.logging": {
         "type": "Project"
       }
     }

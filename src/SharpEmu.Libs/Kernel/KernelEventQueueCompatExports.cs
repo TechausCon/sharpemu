@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 using SharpEmu.HLE;
+using SharpEmu.Logging;
 using System.Buffers.Binary;
 using System.Threading;
 
@@ -9,6 +10,8 @@ namespace SharpEmu.Libs.Kernel;
 
 public static class KernelEventQueueCompatExports
 {
+    private static readonly SharpEmuLogger Log = SharpEmuLog.For("SharpEmu.Libs.Kernel.KernelEventQueueCompatExports");
+
     private static readonly object _eventQueueGate = new();
     private static readonly HashSet<ulong> _eventQueues = new();
     private static long _nextEventQueueHandle = 1;
@@ -191,7 +194,7 @@ public static class KernelEventQueueCompatExports
 
         var returnRip = 0UL;
         _ = ctx.TryReadUInt64(ctx[CpuRegister.Rsp], out returnRip);
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] equeue.{operation}: handle=0x{handle:X16} rsi=0x{ctx[CpuRegister.Rsi]:X16} rdx=0x{ctx[CpuRegister.Rdx]:X16} ret=0x{returnRip:X16}");
     }
 

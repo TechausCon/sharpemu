@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 using SharpEmu.HLE;
+using SharpEmu.Logging;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -10,6 +11,8 @@ namespace SharpEmu.Libs.Kernel;
 
 public static class KernelAprCompatExports
 {
+    private static readonly SharpEmuLogger Log = SharpEmuLog.For("SharpEmu.Libs.Kernel.KernelAprCompatExports");
+
     private static readonly ConcurrentDictionary<uint, ulong> _submittedCommandBuffers = new();
     private static int _nextSubmissionId;
 
@@ -152,7 +155,7 @@ public static class KernelAprCompatExports
 
         var returnRip = 0UL;
         _ = ctx.TryReadUInt64(ctx[CpuRegister.Rsp], out returnRip);
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] apr.{operation}: id=0x{submissionId:X8} cmd=0x{commandBuffer:X16} priority=0x{priority:X16} aux=0x{aux:X16} ret=0x{returnRip:X16}");
     }
 }

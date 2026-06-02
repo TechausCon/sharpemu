@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using SharpEmu.HLE;
+using SharpEmu.Logging;
 
 namespace SharpEmu.Core.Cpu.Native;
 
@@ -29,7 +30,7 @@ public sealed partial class DirectExecutionBackend
 		{
 			return;
 		}
-		Console.Error.WriteLine($"[LOADER][INFO]   Recent import calls ({_recentImportTraceCount}):");
+		Log.Debug($"[LOADER][INFO]   Recent import calls ({_recentImportTraceCount}):");
 		int num = (_recentImportTraceWriteIndex - _recentImportTraceCount + _recentImportTrace.Length) % _recentImportTrace.Length;
 		for (int i = 0; i < _recentImportTraceCount; i++)
 		{
@@ -37,7 +38,7 @@ public sealed partial class DirectExecutionBackend
 			string text = _recentImportTrace[num2];
 			if (!string.IsNullOrEmpty(text))
 			{
-				Console.Error.WriteLine("[LOADER][INFO]     " + text);
+				Log.Debug("[LOADER][INFO]     " + text);
 			}
 		}
 	}
@@ -75,12 +76,12 @@ public sealed partial class DirectExecutionBackend
 						list.Add(num7);
 						if (num2 < 32)
 						{
-							Console.Error.WriteLine($"[LOADER][INFO] Suspicious unresolved pointer: slot=0x{num7:X16} value=0x{value2:X16}");
+							Log.Error($"[LOADER][INFO] Suspicious unresolved pointer: slot=0x{num7:X16} value=0x{value2:X16}");
 							num2++;
 						}
 						if (num >= 16384)
 						{
-							Console.Error.WriteLine($"[LOADER][WARNING] Suspicious unresolved pointer scan reached cap ({16384}); truncating.");
+							Log.Error($"[LOADER][WARNING] Suspicious unresolved pointer scan reached cap ({16384}); truncating.");
 							return list;
 						}
 					}
@@ -90,7 +91,7 @@ public sealed partial class DirectExecutionBackend
 		}
 		if (num != 0)
 		{
-			Console.Error.WriteLine($"[LOADER][WARNING] Suspicious unresolved pointer hits: {num}");
+			Log.Error($"[LOADER][WARNING] Suspicious unresolved pointer hits: {num}");
 		}
 		return list;
 	}
@@ -104,18 +105,18 @@ public sealed partial class DirectExecutionBackend
 		Span<byte> destination = stackalloc byte[128];
 		if (!_cpuContext.Memory.TryRead(returnRip, destination))
 		{
-			Console.Error.WriteLine($"[LOADER][TRACE] Import#{dispatchIndex} return-rip probe: unreadable @0x{returnRip:X16}");
+			Log.Warn($"[LOADER][TRACE] Import#{dispatchIndex} return-rip probe: unreadable @0x{returnRip:X16}");
 			return;
 		}
 		string value = BitConverter.ToString(destination.ToArray()).Replace("-", " ");
-		Console.Error.WriteLine($"[LOADER][TRACE] Import#{dispatchIndex} return-rip bytes @0x{returnRip:X16}: {value}");
+		Log.Debug($"[LOADER][TRACE] Import#{dispatchIndex} return-rip bytes @0x{returnRip:X16}: {value}");
 		if (destination[0] == byte.MaxValue && (destination[1] == 21 || destination[1] == 37))
 		{
 			int num = BitConverter.ToInt32(destination.Slice(2, 4));
 			ulong num2 = returnRip + 6 + (ulong)num;
 			if (_cpuContext.TryReadUInt64(num2, out var value2))
 			{
-				Console.Error.WriteLine($"[LOADER][TRACE] Import#{dispatchIndex} return-rip slot: [0x{num2:X16}] = 0x{value2:X16}");
+				Log.Debug($"[LOADER][TRACE] Import#{dispatchIndex} return-rip slot: [0x{num2:X16}] = 0x{value2:X16}");
 			}
 		}
 		if (destination[0] == 72 && destination[1] == 139 && destination[2] == 5)
@@ -124,7 +125,7 @@ public sealed partial class DirectExecutionBackend
 			ulong num4 = returnRip + 7 + (ulong)num3;
 			if (_cpuContext.TryReadUInt64(num4, out var value3))
 			{
-				Console.Error.WriteLine($"[LOADER][TRACE] Import#{dispatchIndex} return-rip mov-slot: [0x{num4:X16}] = 0x{value3:X16}");
+				Log.Debug($"[LOADER][TRACE] Import#{dispatchIndex} return-rip mov-slot: [0x{num4:X16}] = 0x{value3:X16}");
 			}
 		}
 		for (int i = 0; i + 6 <= destination.Length; i++)
@@ -136,7 +137,7 @@ public sealed partial class DirectExecutionBackend
 				ulong num7 = num6 + 6 + (ulong)num5;
 				if (_cpuContext.TryReadUInt64(num7, out var value4))
 				{
-					Console.Error.WriteLine($"[LOADER][TRACE] Import#{dispatchIndex} near-indirect @{num6:X16}: slot=0x{num7:X16} val=0x{value4:X16}");
+					Log.Debug($"[LOADER][TRACE] Import#{dispatchIndex} near-indirect @{num6:X16}: slot=0x{num7:X16} val=0x{value4:X16}");
 				}
 			}
 		}

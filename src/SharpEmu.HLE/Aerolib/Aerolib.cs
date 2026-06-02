@@ -3,11 +3,14 @@
 
 using System.Buffers.Binary;
 using System.Linq;
+using SharpEmu.Logging;
 
 namespace SharpEmu.HLE;
 
 public sealed class Aerolib : ISymbolCatalog
 {
+    private static readonly SharpEmuLogger Log = SharpEmuLog.For("SharpEmu.HLE.Aerolib");
+
     private static readonly Lazy<Aerolib> _instance = new(() => new Aerolib());
     private static readonly Aerolib EmptyCatalog = new Aerolib(empty: true);
 
@@ -108,14 +111,14 @@ public sealed class Aerolib : ISymbolCatalog
 
             if (resourceName == null)
             {
-                Console.Error.WriteLine("[AEROLIB] Embedded resource 'aerolib.bin' not found");
+                Log.Warn("[AEROLIB] Embedded resource 'aerolib.bin' not found");
                 return;
             }
 
             using var stream = assembly.GetManifestResourceStream(resourceName);
             if (stream == null)
             {
-                Console.Error.WriteLine("[AEROLIB] Failed to open embedded resource stream");
+                Log.Error("[AEROLIB] Failed to open embedded resource stream");
                 return;
             }
 
@@ -145,11 +148,11 @@ public sealed class Aerolib : ISymbolCatalog
                 _byExportName[name] = symbol;
             }
 
-            Console.Error.WriteLine($"[AEROLIB] Loaded {_byNid.Count} NID entries from binary resource");
+            Log.Debug($"[AEROLIB] Loaded {_byNid.Count} NID entries from binary resource");
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[AEROLIB] Failed to load embedded aerolib.bin: {ex.Message}");
+            Log.Error($"[AEROLIB] Failed to load embedded aerolib.bin: {ex.Message}", ex);
         }
     }
 

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 using SharpEmu.HLE;
+using SharpEmu.Logging;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,6 +18,8 @@ namespace SharpEmu.Libs.Kernel;
 
 public static class KernelRuntimeCompatExports
 {
+    private static readonly SharpEmuLogger Log = SharpEmuLog.For("SharpEmu.Libs.Kernel.KernelRuntimeCompatExports");
+
     private const ulong TlsErrnoOffset = 0x40;
     private const ulong TlsStackChkGuardBaseOffset = 0x800;
     private const ulong StackChkGuardFieldOffset = 0x10;
@@ -281,7 +284,7 @@ public static class KernelRuntimeCompatExports
 
         if (address == 0)
         {
-            Console.Error.WriteLine("[LOADER][TRACE] proc_param: address=0");
+            Log.Debug("[LOADER][TRACE] proc_param: address=0");
             return;
         }
 
@@ -289,16 +292,16 @@ public static class KernelRuntimeCompatExports
         var buffer = GC.AllocateUninitializedArray<byte>(dumpSize);
         if (!ctx.Memory.TryRead(address, buffer))
         {
-            Console.Error.WriteLine($"[LOADER][TRACE] proc_param: address=0x{address:X16} unreadable");
+            Log.Warn($"[LOADER][TRACE] proc_param: address=0x{address:X16} unreadable");
             return;
         }
 
-        Console.Error.WriteLine($"[LOADER][TRACE] proc_param: address=0x{address:X16} size=0x{dumpSize:X}");
+        Log.Debug($"[LOADER][TRACE] proc_param: address=0x{address:X16} size=0x{dumpSize:X}");
         for (var offset = 0; offset < dumpSize; offset += 16)
         {
             var slice = buffer.AsSpan(offset, 16);
             var hex = Convert.ToHexString(slice);
-            Console.Error.WriteLine($"[LOADER][TRACE] proc_param[{offset:X3}]: {hex}");
+            Log.Debug($"[LOADER][TRACE] proc_param[{offset:X3}]: {hex}");
         }
 
         TraceProcParamPointers(ctx, address, buffer);
@@ -319,7 +322,7 @@ public static class KernelRuntimeCompatExports
         for (var offset = 0x20; offset <= 0x48; offset += 8)
         {
             var ptr = BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(offset, 8));
-            Console.Error.WriteLine($"[LOADER][TRACE] proc_param.ptr@{offset:X2}: 0x{ptr:X16}");
+            Log.Debug($"[LOADER][TRACE] proc_param.ptr@{offset:X2}: 0x{ptr:X16}");
             if (ptr == 0)
             {
                 continue;
@@ -336,13 +339,13 @@ public static class KernelRuntimeCompatExports
 
         if (TryReadUtf8CString(ctx, address, maxAsciiBytes, out var asciiValue))
         {
-            Console.Error.WriteLine($"[LOADER][TRACE] proc_param.ptr.target ascii@0x{address:X16}: \"{asciiValue}\"");
+            Log.Debug($"[LOADER][TRACE] proc_param.ptr.target ascii@0x{address:X16}: \"{asciiValue}\"");
             return;
         }
 
         if (TryReadUtf16CString(ctx, address, maxWideChars, out var wideValue))
         {
-            Console.Error.WriteLine($"[LOADER][TRACE] proc_param.ptr.target wide@0x{address:X16}: \"{wideValue}\"");
+            Log.Debug($"[LOADER][TRACE] proc_param.ptr.target wide@0x{address:X16}: \"{wideValue}\"");
             return;
         }
 
@@ -350,12 +353,12 @@ public static class KernelRuntimeCompatExports
         if (ctx.Memory.TryRead(address, preview))
         {
             var hex = Convert.ToHexString(preview);
-            Console.Error.WriteLine($"[LOADER][TRACE] proc_param.ptr.target hex@0x{address:X16}: {hex}");
+            Log.Debug($"[LOADER][TRACE] proc_param.ptr.target hex@0x{address:X16}: {hex}");
             TraceProcParamEmbeddedPointers(ctx, address, preview);
         }
         else
         {
-            Console.Error.WriteLine($"[LOADER][TRACE] proc_param.ptr.target unreadable@0x{address:X16}");
+            Log.Warn($"[LOADER][TRACE] proc_param.ptr.target unreadable@0x{address:X16}");
         }
     }
 
@@ -470,7 +473,7 @@ public static class KernelRuntimeCompatExports
 
             if (TryReadUtf8CString(ctx, candidate, 256, out var ascii))
             {
-                Console.Error.WriteLine($"[LOADER][TRACE] proc_param.ptr.embed@0x{baseAddress:X16}+0x{offset:X2} -> 0x{candidate:X16} ascii \"{ascii}\"");
+                Log.Debug($"[LOADER][TRACE] proc_param.ptr.embed@0x{baseAddress:X16}+0x{offset:X2} -> 0x{candidate:X16} ascii \"{ascii}\"");
                 if (++found >= maxCandidates)
                 {
                     return;
@@ -480,7 +483,7 @@ public static class KernelRuntimeCompatExports
 
             if (TryReadUtf16CString(ctx, candidate, 128, out var wide))
             {
-                Console.Error.WriteLine($"[LOADER][TRACE] proc_param.ptr.embed@0x{baseAddress:X16}+0x{offset:X2} -> 0x{candidate:X16} wide \"{wide}\"");
+                Log.Debug($"[LOADER][TRACE] proc_param.ptr.embed@0x{baseAddress:X16}+0x{offset:X2} -> 0x{candidate:X16} wide \"{wide}\"");
                 if (++found >= maxCandidates)
                 {
                     return;
@@ -574,7 +577,7 @@ public static class KernelRuntimeCompatExports
         var bitMask = _gpoStateBits;
         if (string.Equals(Environment.GetEnvironmentVariable("SHARPEMU_LOG_ALLOC_IMPORTS"), "1", StringComparison.Ordinal))
         {
-            Console.Error.WriteLine(
+            Log.Debug(
                 $"[LOADER][TRACE] get_gpi: mask=0x{bitMask:X8}");
         }
         ctx[CpuRegister.Rax] = bitMask;
@@ -616,7 +619,7 @@ public static class KernelRuntimeCompatExports
             return (int)OrbisGen2Result.ORBIS_GEN2_ERROR_NOT_FOUND;
         }
 
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] reserve_virtual_range: req=0x{requestedAddress:X16} desired=0x{desiredAddress:X16} mapped=0x{mappedAddress:X16} len=0x{length:X16}");
 
         if (!ctx.TryWriteUInt64(inOutAddressPointer, mappedAddress))
@@ -674,11 +677,11 @@ public static class KernelRuntimeCompatExports
             _prtApertures[apertureId] = (apertureBase, apertureSize);
         }
 
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] set_prt_aperture: id={apertureId} base=0x{apertureBase:X16} size=0x{apertureSize:X16}");
         if (string.Equals(Environment.GetEnvironmentVariable("SHARPEMU_LOG_ALLOC_IMPORTS"), "1", StringComparison.Ordinal))
         {
-            Console.Error.WriteLine(
+            Log.Debug(
                 $"[LOADER][TRACE] set_prt_aperture raw: rdi=0x{rawId:X16} rsi=0x{apertureBase:X16} rdx=0x{apertureSize:X16} rcx=0x{ctx[CpuRegister.Rcx]:X16} r8=0x{ctx[CpuRegister.R8]:X16} r9=0x{ctx[CpuRegister.R9]:X16}");
         }
         ctx[CpuRegister.Rax] = 0;
@@ -903,7 +906,7 @@ public static class KernelRuntimeCompatExports
         var count = Interlocked.Increment(ref _stackChkFailCount);
         if (count <= 8)
         {
-            Console.Error.WriteLine(
+            Log.Error(
                 $"[LOADER][WARNING] __stack_chk_fail recovery#{count}: rip=0x{ctx.Rip:X16} rdi=0x{ctx[CpuRegister.Rdi]:X16}");
         }
 
@@ -1555,7 +1558,7 @@ public static class KernelRuntimeCompatExports
 
             if (allocateAt is null)
             {
-                Console.Error.WriteLine($"[LOADER][TRACE] reserve_virtual_range: AllocateAt missing on {ctx.Memory.GetType().FullName}");
+                Log.Warn($"[LOADER][TRACE] reserve_virtual_range: AllocateAt missing on {ctx.Memory.GetType().FullName}");
                 return false;
             }
 
@@ -1566,7 +1569,7 @@ public static class KernelRuntimeCompatExports
             if (result is not ulong allocated || allocated == 0)
             {
                 var resultType = result?.GetType().FullName ?? "null";
-                Console.Error.WriteLine($"[LOADER][TRACE] reserve_virtual_range: AllocateAt returned {resultType} value={result ?? "null"}");
+                Log.Debug($"[LOADER][TRACE] reserve_virtual_range: AllocateAt returned {resultType} value={result ?? "null"}");
                 return false;
             }
 
@@ -1575,7 +1578,7 @@ public static class KernelRuntimeCompatExports
         }
         catch
         {
-            Console.Error.WriteLine("[LOADER][TRACE] reserve_virtual_range: AllocateAt invocation threw");
+            Log.Debug("[LOADER][TRACE] reserve_virtual_range: AllocateAt invocation threw");
             return false;
         }
     }

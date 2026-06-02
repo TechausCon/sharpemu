@@ -9,12 +9,16 @@
         "contentHash": "dv5+81Q1TBQvVMSOOOmRcjJmvWcX3BZPZsIq31+RLc5cNft0IHAyNlkdb7ZarOWG913PyBoFDsDXoCIlKmLclg=="
       },
       "sharpemu.hle": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "SharpEmu.Logging": "[1.0.0, )"
+        }
       },
       "sharpemu.libs": {
         "type": "Project",
         "dependencies": {
-          "SharpEmu.HLE": "[1.0.0, )"
+          "SharpEmu.HLE": "[1.0.0, )",
+          "SharpEmu.Logging": "[1.0.0, )"
         }
       },
       "sharpemu.logging": {

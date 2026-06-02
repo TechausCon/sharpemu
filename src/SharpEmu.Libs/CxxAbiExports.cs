@@ -5,11 +5,14 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using SharpEmu.HLE;
+using SharpEmu.Logging;
 
 namespace SharpEmu.Libs.CxxAbi;
 
 public static class CxaGuardExports
 {
+    private static readonly SharpEmuLogger Log = SharpEmuLog.For("SharpEmu.Libs.CxxAbi.CxaGuardExports");
+
     private const ulong GuardCompleteValue = 0x0000_0000_0000_0001;
     private const ulong GuardPendingValue = 0x0000_0000_0000_0100;
     private const ulong GuardStateMask = 0x0000_0000_0000_FFFF;
@@ -205,7 +208,7 @@ public static class CxaGuardExports
         }
 
         var readable = ctx.TryReadUInt64(guardPtr, out var word);
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] {op}: guard=0x{guardPtr:X16} init={initialized} in_progress={inProgress} word={(readable ? $"0x{word:X16}" : "<unreadable>")}");
     }
 
@@ -216,7 +219,7 @@ public static class CxaGuardExports
             return;
         }
 
-        Console.Error.WriteLine(
+        Log.Debug(
             $"[LOADER][TRACE] {op}: guard=0x{guardPtr:X16} result={result} init={initialized} in_progress={inProgress} owner_thread={ownerThreadId}");
     }
 }

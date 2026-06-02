@@ -27,7 +27,7 @@ internal static partial class Program
 
     private static int Main(string[] args)
     {
-        Console.Error.WriteLine($"[DEBUG] SharpEmu starting with {args.Length} args");
+        Log.Debug($"SharpEmu starting with {args.Length} args");
 
         args = NormalizeInternalArguments(args, out var isMitigatedChild);
         if (!isMitigatedChild && TryRunMitigatedChild(args, out var childExitCode))
@@ -44,7 +44,7 @@ internal static partial class Program
         SharpEmuLog.MinimumLevel = logLevel;
 
         ebootPath = Path.GetFullPath(ebootPath);
-        Console.Error.WriteLine($"[DEBUG] Full path: {ebootPath}");
+        Log.Debug($"Full path: {ebootPath}");
         
         if (!File.Exists(ebootPath))
         {
@@ -52,20 +52,19 @@ internal static partial class Program
             return 2;
         }
 
-        Console.Error.WriteLine("[DEBUG] Creating runtime...");
+        Log.Debug("Creating runtime...");
 
         using var runtime = SharpEmuRuntime.CreateDefault(runtimeOptions);
 
         OrbisGen2Result result;
         try
         {
-            Console.Error.WriteLine($"[DEBUG] Running: {ebootPath}");
+            Log.Debug($"Running: {ebootPath}");
             result = runtime.Run(ebootPath);
-            Console.Error.WriteLine($"[DEBUG] Result: {result}");
+            Log.Debug($"Result: {result}");
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"[DEBUG] Exception: {ex}");
             Log.Error("SharpEmu failed to run.", ex);
             return 3;
         }
@@ -242,7 +241,7 @@ internal static partial class Program
                 }
 
                 childExitCode = unchecked((int)exitCode);
-                Console.Error.WriteLine("[DEBUG] Running in mitigated child process (CET/CFG disabled).");
+                Log.Debug("Running in mitigated child process (CET/CFG disabled).");
                 return true;
             }
             finally
