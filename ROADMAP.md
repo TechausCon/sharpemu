@@ -66,33 +66,35 @@ I/O), and a cooperative guest-thread scheduler.
 
 ## Known Technical Debt / Risks
 
-1. **No test project.** The single biggest risk for an emulator this fragile.
+1. ~~**No test project.**~~ RESOLVED (Phase 0): `SharpEmu.Tests` added.
 2. **`DirectExecutionBackend` is fragile and monolithic** (~4000 lines across 4
    files): binary-patch hacks (stack-canary removal, TLS redirection), a global
    host-RSP slot, sentinel "recovery" by scanning the stack, a watchdog that
-   calls `Environment.Exit(4)`.
-3. **Dead / orphaned code:** `JitStubs` / `StubManager` are disconnected from the
-   active path; several fields are written but never read
-   (`_globalUnresolvedReturnStub`, `TryPatchEa020eLookupCall`, ...).
-4. **Debug `Console.Error` output is baked into the production path** — should go
-   through `SharpEmuLog` with log levels.
-5. **Build is pinned** via `global.json` (`10.0.103`, `rollForward: disable`) and
-   fails on machines with a different .NET 10 feature band.
+   calls `Environment.Exit(4)`. (Phase 1 target.)
+3. ~~**Dead / orphaned code.**~~ RESOLVED (Phase 0): `JitStubs`/`StubManager`/
+   `CpuPatcher` deleted; write-only fields and `TryPatchEa020eLookupCall` removed.
+4. ~~**Debug `Console.Error` output baked into the production path.**~~ RESOLVED
+   (Phase 0): routed through `SharpEmuLog` with log levels.
+5. ~~**Build is pinned** via `global.json`.~~ RESOLVED (Phase 0): `rollForward`
+   set to `latestFeature`.
 6. **Cooperative threading** without true parallelism; `pthread_join` is a stub.
+   (Phase 1 target.)
 
 ## Development Plan
 
-### Phase 0 — Foundation & Hygiene (small, do first)
+### Phase 0 — Foundation & Hygiene (COMPLETE)
 
-- [ ] Fix `global.json`: set `rollForward` to `latestFeature`/`latestPatch` or
-      bump the version so the build works across .NET 10 SDKs.
-- [ ] Add a test project (`SharpEmu.Tests`, xUnit). Start with deterministic,
-      pure components: loader (ELF parsing / relocations), `PhysicalVirtualMemory`,
-      `ModuleManager` dispatch, NID hashing, Aerolib.
-- [ ] Route debug logging through `SharpEmuLog` (remove `Console.Error` "[DEBUG]"
-      spam from hot paths).
-- [ ] Decide on dead code: wire up or delete `JitStubs` / `StubManager` and unused
-      fields.
+- [x] Fix `global.json`: set `rollForward` to `latestFeature` so the build works
+      across .NET 10 SDK feature bands (CI pins `10.0.103`, devs may have `10.0.3xx`).
+- [x] Add a test project (`SharpEmu.Tests`, xUnit) — 34 tests covering
+      `VirtualMemory`, `CpuContext`, `ModuleManager` dispatch, `ElfHeader` parsing,
+      and `Aerolib`.
+- [x] Route diagnostic logging through `SharpEmuLog` (~356 `Console.Error.WriteLine`
+      calls migrated; guest program I/O via `Console.Write`/`Out`/`Error.Write`
+      deliberately preserved).
+- [x] Remove dead code: deleted the orphaned `JitStubs` / `StubManager` trampoline
+      layer and unused `CpuPatcher`, plus several write-only fields and the
+      never-called `TryPatchEa020eLookupCall` in `DirectExecutionBackend`.
 
 ### Phase 1 — CPU Backend Stability (foundation for everything)
 
