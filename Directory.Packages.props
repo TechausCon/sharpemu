@@ -10,4 +10,9 @@ SPDX-License-Identifier: GPL-2.0-or-later
   <ItemGroup>
     <PackageVersion Include="Iced" Version="1.21.0" />
   </ItemGroup>
+  <ItemGroup Label="Testing">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
 </Project>
