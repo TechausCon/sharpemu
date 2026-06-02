@@ -861,39 +861,4 @@ public sealed partial class DirectExecutionBackend
 			VirtualProtect((void*)branchAddress, 2u, flNewProtect, &flNewProtect);
 		}
 	}
-
-	private unsafe void TryPatchEa020eLookupCall(long dispatchIndex, ulong returnRip)
-	{
-		if (_patchedEa020eLookupCall || returnRip != 0x0000000800EA01A6uL)
-		{
-			return;
-		}
-		const ulong num = 0x0000000800EA020EuL;
-		nint num2 = unchecked((nint)num);
-		uint flNewProtect = default(uint);
-		try
-		{
-			if (Marshal.ReadByte(num2) != 232 || !VirtualProtect((void*)num, 5u, 64u, &flNewProtect))
-			{
-				return;
-			}
-			for (int i = 0; i < 5; i++)
-			{
-				Marshal.WriteByte(num2 + i, 144);
-			}
-			FlushInstructionCache(GetCurrentProcess(), (void*)num, 5u);
-			_patchedEa020eLookupCall = true;
-			Log.Warn($"[LOADER][WARNING] Import#{dispatchIndex}: patched hash-lookup call at 0x{num:X16} -> NOP*5");
-		}
-		catch
-		{
-		}
-		finally
-		{
-			if (flNewProtect != 0)
-			{
-				VirtualProtect((void*)num, 5u, flNewProtect, &flNewProtect);
-			}
-		}
-	}
 }

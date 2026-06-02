@@ -179,25 +179,13 @@ public sealed unsafe partial class DirectExecutionBackend : INativeCpuBackend, I
 
 	private readonly HashSet<ulong> _stackChkBypassSites = new HashSet<ulong>();
 
-	private readonly HashSet<ulong> _patchedResolverReturnSites = new HashSet<ulong>();
-
-	private readonly HashSet<ulong> _patchedTlsImmediateThunkTargets = new HashSet<ulong>();
-
-	private readonly HashSet<ulong> _contextualUnresolvedReturnSites = new HashSet<ulong>();
-
 	private ulong _returnFallbackTarget;
 
 	private static int _rawSentinelRecoveries;
 
 	private int _lastReportedRawSentinelRecoveries;
 
-	private static ulong _globalFallbackTarget;
-
-	private static ulong _globalUnresolvedReturnStub;
-
 	private nint _hostRspSlotStorage;
-
-	private bool _patchedEa020eLookupCall;
 
 	private ulong _entryReturnSentinelRip;
 
@@ -422,8 +410,6 @@ public sealed unsafe partial class DirectExecutionBackend : INativeCpuBackend, I
 		_entryPoint = entryPoint;
 		_cpuContext = context;
 		_returnFallbackTarget = context[CpuRegister.Rsi];
-		Volatile.Write(ref _globalFallbackTarget, _returnFallbackTarget);
-		Volatile.Write(ref _globalUnresolvedReturnStub, (ulong)_unresolvedReturnStub);
 		result = OrbisGen2Result.ORBIS_GEN2_OK;
 		LastError = null;
 		InitializeRuntimeSymbolIndex(runtimeSymbols);
@@ -442,10 +428,8 @@ public sealed unsafe partial class DirectExecutionBackend : INativeCpuBackend, I
 		_importLoopPatternHits = 0;
 		_importNidHashCache.Clear();
 		ClearGuestThreads();
-		_contextualUnresolvedReturnSites.Clear();
 		_stallWatchdogTriggered = 0;
 		_stallWatchdogStop = false;
-		_patchedEa020eLookupCall = false;
 		MarkExecutionProgress();
 		BindTlsBase(context);
 		var previousGuestThreadScheduler = GuestThreadExecution.Scheduler;
@@ -2254,7 +2238,6 @@ public sealed unsafe partial class DirectExecutionBackend : INativeCpuBackend, I
 			VirtualFree((void*)_nullObjectStoreScratch, 0u, 32768u);
 			_nullObjectStoreScratch = 0;
 		}
-		Volatile.Write(ref _globalUnresolvedReturnStub, 0uL);
 	}
 
 	[DllImport("kernel32.dll")]
